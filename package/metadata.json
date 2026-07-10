@@ -1,0 +1,19 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "dee"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Shows OpenAI Codex rate-limit usage as a circular gauge",
+        "Icon": "view-statistics",
+        "Id": "com.github.codex.usage",
+        "License": "MIT",
+        "Name": "Codex Usage",
+        "Version": "0.1.0",
+        "Website": "https://github.com/dee/codex_usage_kde"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
