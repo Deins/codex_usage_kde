@@ -16,25 +16,16 @@ A KDE Plasma 6 widget that displays your [OpenAI Codex](https://github.com/opena
 
 ## Prerequisites
 
-You need **Codex** and **jq** installed and Codex logged in:
+You need **Codex** installed and logged in.
 
-```bash
-# Install jq (Arch)
-sudo pacman -S jq
+If codex is not on your `PATH` (e.g. managed by an editor like Zed), you can set its path in settings.
 
-# Install codex and log in
-npm install -g @openai/codex
-codex login
 ```
 
 Verify both are accessible on your `PATH`:
 
-```bash
-codex --version
-jq --version
-```
 
-If codex is not on your `PATH` (e.g. managed by an editor like Zed), see
+
 [Configuration](#configuration) below.
 
 ## Installation
@@ -173,8 +164,8 @@ plasmawindowed com.github.codex.usage
 
 ## Troubleshooting
 
-**Widget shows "!!"** — The script failed to run. Check that `codex` and `jq`
-are available and that you've run `codex login`. You can debug by running
+**Widget shows "!!"** — The script failed to run. Check that `codex` is
+available and that you've run `codex login`. You can debug by running
 the script manually:
 
 ```bash

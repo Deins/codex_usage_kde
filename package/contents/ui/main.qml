@@ -46,6 +46,34 @@ PlasmoidItem {
         return "'" + s.replace(/'/g, "'\\''") + "'"
     }
 
+    function usageFromResponse(response) {
+        if (response.error) {
+            throw new Error(response.error.message || i18n("Codex App Server returned an error."))
+        }
+
+        var limits = response.result && response.result.rateLimits
+        if (!limits && response.result && response.result.rateLimitsByLimitId) {
+            var limitIds = Object.keys(response.result.rateLimitsByLimitId)
+            limits = limitIds.length > 0 ? response.result.rateLimitsByLimitId[limitIds[0]] : null
+        }
+        if (!limits) {
+            throw new Error(i18n("No rate-limit information was returned."))
+        }
+
+        return {
+            primary_used_percent: limits.primary ? limits.primary.usedPercent : 0,
+            primary_window_minutes: limits.primary ? limits.primary.windowDurationMins : 0,
+            primary_resets_at: limits.primary ? limits.primary.resetsAt : null,
+            secondary_used_percent: limits.secondary ? limits.secondary.usedPercent : 0,
+            secondary_window_minutes: limits.secondary ? limits.secondary.windowDurationMins : 0,
+            secondary_resets_at: limits.secondary ? limits.secondary.resetsAt : null,
+            plan_type: limits.planType || "",
+            rate_limit_reached: limits.rateLimitReachedType,
+            credits_balance: limits.credits ? limits.credits.balance : null,
+            credits_unlimited: limits.credits ? limits.credits.unlimited : false
+        }
+    }
+
     Plasma5Support.DataSource {
         id: executable
         engine: "executable"
@@ -61,7 +89,7 @@ PlasmoidItem {
                 root.usageData = null
             } else {
                 try {
-                    root.usageData = JSON.parse(stdout)
+                    root.usageData = root.usageFromResponse(JSON.parse(stdout))
                     root.errorString = ""
                 } catch (e) {
                     root.errorString = i18n("Failed to parse Codex usage response.")
@@ -83,7 +111,7 @@ PlasmoidItem {
 
     Timer {
         id: refreshTimer
-        interval: Math.max(120, plasmoid.configuration.refreshInterval) * 1000
+        interval: Math.max(30, plasmoid.configuration.refreshInterval) * 1000
         repeat: true
         running: true
         triggeredOnStart: true

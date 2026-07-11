@@ -1,33 +1,22 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Extract just the JSON rate-limit data from the codex app-server.
-# The output is a single JSON object on stdout, all logs go to stderr.
-#
-# Override the codex binary path with the CODEX_BIN environment variable:
-#   CODEX_BIN=/path/to/codex bash codex_usage.bash
+# Fetch the JSON-RPC response from the Codex app-server. Plasma's QML runtime
+# parses and reshapes the JSON, so no external JSON utility is required.
 
 TIMEOUT_SECONDS=30
-
 CODEX_BIN="${CODEX_BIN:-codex}"
 
-for command_name in "$CODEX_BIN" jq; do
-    if ! command -v "$command_name" >/dev/null 2>&1; then
-        if [[ "$command_name" == "$CODEX_BIN" ]]; then
-            echo "Error: codex binary not found: '$CODEX_BIN'" >&2
-        else
-            echo "Error: '$command_name' is not installed." >&2
-        fi
-        exit 1
-    fi
-done
+if ! command -v "$CODEX_BIN" >/dev/null 2>&1; then
+    echo "Error: codex binary not found: '$CODEX_BIN'" >&2
+    exit 1
+fi
 
 coproc CODEX_SERVER {
     "$CODEX_BIN" app-server --listen stdio://
 }
 
 server_pid=$CODEX_SERVER_PID
-
 exec {server_out}<&"${CODEX_SERVER[0]}"
 exec {server_in}>&"${CODEX_SERVER[1]}"
 
@@ -37,25 +26,12 @@ cleanup() {
     kill "$server_pid" 2>/dev/null || true
     wait "$server_pid" 2>/dev/null || true
 }
-
 trap cleanup EXIT INT TERM
-
-send_json() {
-    local message=$1
-    local compact
-
-    if ! compact=$(jq -c . <<<"$message"); then
-        echo "Error: invalid JSON request:" >&2
-        echo "$message" >&2
-        exit 1
-    fi
-
-    printf '%s\n' "$compact" >&"$server_in"
-}
 
 wait_for_id() {
     local wanted_id=$1
     local line
+    local id_pattern='"id"[[:space:]]*:[[:space:]]*'"$wanted_id"'([^0-9]|$)'
 
     while true; do
         if ! IFS= read -r -t "$TIMEOUT_SECONDS" line <&"$server_out"; then
@@ -64,18 +40,12 @@ wait_for_id() {
             exit 1
         fi
 
-        if ! jq -e . >/dev/null 2>&1 <<<"$line"; then
+        if ! [[ "$line" =~ $id_pattern ]]; then
             continue
         fi
-
-        if ! jq -e --argjson id "$wanted_id" '.id == $id' \
-            >/dev/null 2>&1 <<<"$line"; then
-            continue
-        fi
-
-        if jq -e '.error != null' >/dev/null 2>&1 <<<"$line"; then
+        if [[ "$line" =~ \"error\"[[:space:]]*:[[:space:]]*[^n] ]]; then
             echo "Codex App Server returned an error:" >&2
-            jq '.error' <<<"$line" >&2
+            echo "$line" >&2
             exit 1
         fi
 
@@ -84,45 +54,11 @@ wait_for_id() {
     done
 }
 
-# Initialize the App Server.
-send_json '{
-    "method": "initialize",
-    "id": 1,
-    "params": {
-        "clientInfo": {
-            "name": "kde_codex_usage_widget",
-            "title": "KDE Codex Usage Widget",
-            "version": "0.1.0"
-        }
-    }
-}'
-
+printf '%s\n' '{"method":"initialize","id":1,"params":{"clientInfo":{"name":"kde_codex_usage_widget","title":"KDE Codex Usage Widget","version":"0.1.0"}}}' >&"$server_in"
 wait_for_id 1 >/dev/null
 
-# Finish the initialization handshake.
-send_json '{
-    "method": "initialized",
-    "params": {}
-}'
+printf '%s\n' '{"method":"initialized","params":{}}' >&"$server_in"
+printf '%s\n' '{"method":"account/rateLimits/read","id":2}' >&"$server_in"
 
-# Request Codex usage limits.
-send_json '{
-    "method": "account/rateLimits/read",
-    "id": 2
-}'
-
-response=$(wait_for_id 2)
-
-# Output compact JSON with just the fields the widget needs.
-jq -c '{
-    primary_used_percent: .result.rateLimits.primary.usedPercent,
-    primary_window_minutes: .result.rateLimits.primary.windowDurationMins,
-    primary_resets_at: .result.rateLimits.primary.resetsAt,
-    secondary_used_percent: .result.rateLimits.secondary.usedPercent,
-    secondary_window_minutes: .result.rateLimits.secondary.windowDurationMins,
-    secondary_resets_at: .result.rateLimits.secondary.resetsAt,
-    plan_type: .result.rateLimits.planType,
-    rate_limit_reached: .result.rateLimits.rateLimitReachedType,
-    credits_balance: .result.rateLimits.credits.balance,
-    credits_unlimited: .result.rateLimits.credits.unlimited
-}' <<<"$response"
+# Return the unmodified response for QML's built-in JSON parser.
+wait_for_id 2

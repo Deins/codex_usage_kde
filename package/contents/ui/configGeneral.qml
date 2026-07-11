@@ -21,18 +21,6 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Refresh interval (seconds):")
         }
 
-        PlasmaComponents.Label {
-            Kirigami.FormData.label: ""
-            text: i18n("Minimum 2 minutes to avoid rate-limiting.")
-            font.pointSize: Kirigami.Theme.smallFont.pointSize
-            color: Kirigami.Theme.disabledTextColor
-        }
-
-        Kirigami.Separator {
-            Kirigami.FormData.label: ""
-            Kirigami.FormData.isSection: true
-        }
-
         PlasmaComponents.TextField {
             id: codexPathField
             Kirigami.FormData.label: i18n("Codex binary path:")
