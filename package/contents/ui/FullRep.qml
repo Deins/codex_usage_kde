@@ -61,7 +61,10 @@ Item {
                 value: root.primaryUsed / 100
                 gaugeColor: root.primaryColor
                 arcWidth: Kirigami.Units.largeSpacing
-                trackColor: Qt.tint(Kirigami.Theme.backgroundColor, Kirigami.Theme.textColor)
+                trackColor: Kirigami.ColorUtils.linearInterpolation(
+                                Kirigami.Theme.backgroundColor,
+                                Kirigami.Theme.textColor,
+                                0.1)
 
                 Column {
                     anchors.centerIn: parent
@@ -114,7 +117,10 @@ Item {
                         anchors.fill: parent
                         height: 6
                         radius: 3
-                        color: Qt.rgba(1, 1, 1, 0.12)
+                        color: Kirigami.ColorUtils.linearInterpolation(
+                                   Kirigami.Theme.backgroundColor,
+                                   Kirigami.Theme.textColor,
+                                   0.1)
                     }
                     Rectangle {
                         anchors.left: parent.left
@@ -149,7 +155,10 @@ Item {
                         anchors.fill: parent
                         height: 6
                         radius: 3
-                        color: Qt.rgba(1, 1, 1, 0.12)
+                        color: Kirigami.ColorUtils.linearInterpolation(
+                                   Kirigami.Theme.backgroundColor,
+                                   Kirigami.Theme.textColor,
+                                   0.1)
                     }
                     Rectangle {
                         anchors.left: parent.left
