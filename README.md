@@ -20,14 +20,6 @@ You need **Codex** installed and logged in.
 
 If codex is not on your `PATH` (e.g. managed by an editor like Zed), you can set its path in settings.
 
-```
-
-Verify both are accessible on your `PATH`:
-
-
-
-[Configuration](#configuration) below.
-
 ## Installation
 
 ### From source
