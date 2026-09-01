@@ -6,7 +6,7 @@ A KDE Plasma 6 widget that displays your [OpenAI Codex](https://github.com/opena
 
 ## Features
 
-- Circular ring chart showing 5-hour window usage with percentage in the center
+- Circular ring chart showing current rate-limit window usage with percentage in the center
 - Weekly usage bar
 - Reset countdown timers
 - Credit balance and plan type display

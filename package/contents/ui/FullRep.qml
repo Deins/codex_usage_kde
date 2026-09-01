@@ -17,10 +17,35 @@ Item {
         var now = Math.floor(Date.now() / 1000)
         var diff = unixTs - now
         if (diff <= 0) return i18n("now")
-        var h = Math.floor(diff / 3600)
+        var d = Math.floor(diff / 86400)
+        var h = Math.floor((diff % 86400) / 3600)
         var m = Math.floor((diff % 3600) / 60)
+        if (d > 0) return d + "d " + h + "h"
         if (h > 0) return h + "h " + m + "m"
-        return m + "m"
+        return Math.max(1, m) + "m"
+    }
+
+    function windowName(minutes) {
+        if (minutes === 10080) return i18n("Weekly")
+        if (minutes >= 60 && minutes % 60 === 0) return i18n("%1-hour", minutes / 60)
+        return i18n("%1-minute", minutes)
+    }
+
+    function remainingPerDay() {
+        if (!root.usageData) return "—"
+        var resetsAt = null
+        var used = 0
+        if (root.usageData.secondary_window_minutes >= 1440) {
+            resetsAt = root.usageData.secondary_resets_at
+            used = root.secondaryUsed
+        } else if (root.usageData.primary_window_minutes >= 1440) {
+            resetsAt = root.usageData.primary_resets_at
+            used = root.primaryUsed
+        }
+        if (!resetsAt) return "—"
+        var daysLeft = (resetsAt - Date.now() / 1000) / 86400
+        if (daysLeft <= 0) return "—"
+        return i18n("%1% / day", ((100 - used) / daysLeft).toFixed(1))
     }
 
     function fmtCredits(raw) {
@@ -68,27 +93,56 @@ Item {
 
                 Column {
                     anchors.centerIn: parent
-                    spacing: 2
+                    anchors.verticalCenterOffset: -primaryGauge.height * 0.015
+                    spacing: primaryGauge.height * 0.025
 
-                    PlasmaComponents.Label {
+                    Column {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: {
-                            if (root.loading) return "…"
-                            if (root.errorString !== "") return "!!"
-                            if (!root.usageData) return "—"
-                            return root.primaryUsed + "%"
+                        spacing: 0
+
+                        PlasmaComponents.Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: {
+                                if (root.loading) return "…"
+                                if (root.errorString !== "") return "!!"
+                                if (!root.usageData) return "—"
+                                return root.primaryUsed + "%"
+                            }
+                            color: primaryGauge.gaugeColor
+                            font.pixelSize: primaryGauge.height * 0.22
+                            font.bold: true
                         }
-                        color: primaryGauge.gaugeColor
-                        font.pixelSize: primaryGauge.height * 0.22
-                        font.bold: true
+
+                        PlasmaComponents.Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: root.usageData
+                                  ? i18n("%1 usage", windowName(root.usageData.primary_window_minutes))
+                                  : ""
+                            color: Kirigami.Theme.disabledTextColor
+                            font.pixelSize: primaryGauge.height * 0.06
+                            visible: root.usageData !== null
+                        }
                     }
 
-                    PlasmaComponents.Label {
+                    Column {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: i18n("5-hour window")
-                        color: Kirigami.Theme.disabledTextColor
-                        font.pixelSize: primaryGauge.height * 0.06
                         visible: root.usageData !== null
+                        spacing: 0
+
+                        PlasmaComponents.Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: remainingPerDay()
+                            color: Kirigami.Theme.textColor
+                            font.pixelSize: primaryGauge.height * 0.09
+                            font.bold: true
+                        }
+
+                        PlasmaComponents.Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: i18n("Remaining allowance")
+                            color: Kirigami.Theme.disabledTextColor
+                            font.pixelSize: primaryGauge.height * 0.05
+                        }
                     }
                 }
             }
@@ -102,7 +156,9 @@ Item {
             visible: root.usageData !== null && root.errorString === ""
 
             PlasmaComponents.Label {
-                text: i18n("5-hour:")
+                text: root.usageData
+                      ? i18n("%1 usage:", windowName(root.usageData.primary_window_minutes))
+                      : ""
                 color: Kirigami.Theme.disabledTextColor
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
             }
@@ -140,13 +196,17 @@ Item {
             }
 
             PlasmaComponents.Label {
-                text: i18n("Weekly:")
+                text: root.usageData
+                      ? i18n("%1 usage:", windowName(root.usageData.secondary_window_minutes))
+                      : ""
                 color: Kirigami.Theme.disabledTextColor
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
+                visible: root.usageData && root.usageData.secondary_window_minutes > 0
             }
             RowLayout {
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.smallSpacing
+                visible: root.usageData && root.usageData.secondary_window_minutes > 0
                 Item {
                     Layout.fillWidth: true
                     implicitHeight: 6
@@ -178,7 +238,9 @@ Item {
             }
 
             PlasmaComponents.Label {
-                text: i18n("5h resets in:")
+                text: root.usageData
+                      ? i18n("%1 resets in:", windowName(root.usageData.primary_window_minutes))
+                      : ""
                 color: Kirigami.Theme.disabledTextColor
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
             }
@@ -189,14 +251,18 @@ Item {
             }
 
             PlasmaComponents.Label {
-                text: i18n("Weekly resets in:")
+                text: root.usageData
+                      ? i18n("%1 resets in:", windowName(root.usageData.secondary_window_minutes))
+                      : ""
                 color: Kirigami.Theme.disabledTextColor
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
+                visible: root.usageData && root.usageData.secondary_window_minutes > 0
             }
             PlasmaComponents.Label {
                 Layout.fillWidth: true
                 text: root.usageData ? fmtTimeLeft(root.usageData.secondary_resets_at) : ""
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
+                visible: root.usageData && root.usageData.secondary_window_minutes > 0
             }
 
             PlasmaComponents.Label {
