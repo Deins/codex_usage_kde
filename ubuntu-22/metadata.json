@@ -1,0 +1,7 @@
+{
+  "uuid": "codex-usage@dee.github.com",
+  "name": "Codex Usage",
+  "description": "Shows OpenAI Codex rate-limit usage in the top panel",
+  "shell-version": ["42"],
+  "version": 1
+}
